@@ -32,6 +32,23 @@ export interface EpubGenerationResult {
   readonly chaptersCount?: number;
 }
 
+export interface EpubPartResult {
+  readonly partNumber: number;
+  readonly outputPath: string;
+  readonly fileSize: number;
+  readonly chaptersCount: number;
+  readonly title: string;
+}
+
+export interface MultiPartEpubGenerationResult {
+  readonly success: boolean;
+  readonly error?: string;
+  readonly totalParts: number;
+  readonly totalChapters: number;
+  readonly totalFileSize: number;
+  readonly parts: EpubPartResult[];
+}
+
 export const defaultEpubMetadata: EpubMetadata = {
   title: "Fast Founder - Полная коллекция статей",
   author: "Fast Founder",

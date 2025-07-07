@@ -55,29 +55,39 @@ class FastFounderParser {
       // Этап 4: Создание EPUB
       logger.info("Создаем EPUB документ...");
       const epubGenerator = new EpubGenerator();
-      const outputPath = `./fastfounder-${CONFIG.isDev ? "dev" : "full"}.epub`;
+      const basePath = `./fastfounder-${CONFIG.isDev ? "dev" : "full"}.epub`;
 
-      const epubResult = await epubGenerator.generateEpub(
+      const epubResult = await epubGenerator.generateMultiPartEpub(
         parsedPages,
         defaultEpubMetadata,
-        outputPath
+        basePath,
+        CONFIG.epub.parts
       );
 
       if (!epubResult.success) {
         throw new Error(`Ошибка создания EPUB: ${epubResult.error}`);
       }
 
-      logger.success(`EPUB документ создан: ${epubResult.outputPath}`);
+      if (epubResult.totalParts === 1) {
+        logger.success(
+          `EPUB документ создан: ${epubResult.parts[0].outputPath}`
+        );
+      } else {
+        logger.success(`Создано ${epubResult.totalParts} частей EPUB:`);
+        epubResult.parts.forEach((part) => {
+          logger.info(
+            `  📖 Часть ${part.partNumber}: ${part.outputPath} (${part.chaptersCount} глав)`
+          );
+        });
+      }
 
       // Финальная статистика
       const duration = Date.now() - startTime;
       logger.party("Парсинг завершен успешно!");
       logger.info(`Время выполнения: ${formatDuration(duration)}`);
       logger.info(`Обработано страниц: ${parsedPages.length}`);
-
-      if (epubResult.fileSize) {
-        logger.info(`Размер EPUB: ${epubResult.fileSize} байт`);
-      }
+      logger.info(`Частей EPUB: ${epubResult.totalParts}`);
+      logger.info(`Общий размер: ${epubResult.totalFileSize} байт`);
     } catch (error) {
       const duration = Date.now() - startTime;
       const errorMessage =

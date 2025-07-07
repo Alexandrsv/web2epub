@@ -4,6 +4,9 @@ export interface AppConfig {
   readonly CSV_FILE: string;
   readonly OUTPUT_DIR: string;
   readonly isDev: boolean;
+  readonly epub: {
+    readonly parts: number;
+  };
   readonly http: {
     readonly userAgent: string;
     readonly headers: Record<string, string>;
@@ -18,12 +21,16 @@ export interface AppConfig {
 }
 
 export const CONFIG: AppConfig = {
-  DEV_PAGES_LIMIT: parseInt(process.env.PAGES_LIMIT || "30"),
+  DEV_PAGES_LIMIT: parseInt(process.env.PAGES_LIMIT || "3"),
   COOKIES_FILE: "./fastfounder.ru_cookies.txt",
   CSV_FILE: "./1.csv",
   OUTPUT_DIR: "./output",
   isDev:
     process.env.NODE_ENV === "development" || process.argv.includes("--dev"),
+
+  epub: {
+    parts: parseInt(process.env.EPUB_PARTS || "17"),
+  },
 
   http: {
     userAgent:
@@ -40,7 +47,7 @@ export const CONFIG: AppConfig = {
   },
 
   delays: {
-    betweenRequests: parseInt(process.env.REQUEST_DELAY || "300"),
+    betweenRequests: parseInt(process.env.REQUEST_DELAY || "1000"),
   },
 
   retry: {

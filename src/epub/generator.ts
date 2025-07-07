@@ -6,6 +6,8 @@ import type {
   EpubGenerationResult,
   EpubMetadata,
   EpubChapter,
+  MultiPartEpubGenerationResult,
+  EpubPartResult,
 } from "../types/index.js";
 import { pageDataToChapter } from "../types/index.js";
 import { logger } from "../utils/logger.js";
@@ -95,6 +97,29 @@ export class EpubGenerator {
     });
   }
 
+  private splitChaptersIntoParts(
+    chapters: EpubChapter[],
+    partCount: number
+  ): EpubChapter[][] {
+    if (partCount <= 1) {
+      return [chapters];
+    }
+
+    const parts: EpubChapter[][] = [];
+    const chapterPerPart = Math.ceil(chapters.length / partCount);
+
+    for (let i = 0; i < partCount; i++) {
+      const start = i * chapterPerPart;
+      const end = Math.min(start + chapterPerPart, chapters.length);
+
+      if (start < chapters.length) {
+        parts.push(chapters.slice(start, end));
+      }
+    }
+
+    return parts;
+  }
+
   private processImagesInContent(content: string): string {
     // Заменяем img теги на текстовые ссылки для избежания ошибок с загрузкой изображений
     return content
@@ -136,6 +161,166 @@ export class EpubGenerator {
     const processedContent = this.processImagesInContent(chapter.content);
 
     return `${metaSection}${processedContent}`;
+  }
+
+  async generateMultiPartEpub(
+    pages: PageData[],
+    metadata: EpubMetadata,
+    basePath: string,
+    partCount: number
+  ): Promise<MultiPartEpubGenerationResult> {
+    try {
+      if (partCount <= 1) {
+        // Если только одна часть, используем обычную генерацию
+        const result = await this.generateEpub(pages, metadata, basePath);
+        if (!result.success) {
+          return {
+            success: false,
+            error: result.error,
+            totalParts: 0,
+            totalChapters: 0,
+            totalFileSize: 0,
+            parts: [],
+          };
+        }
+
+        return {
+          success: true,
+          totalParts: 1,
+          totalChapters: result.chaptersCount || 0,
+          totalFileSize: result.fileSize || 0,
+          parts: [
+            {
+              partNumber: 1,
+              outputPath: result.outputPath!,
+              fileSize: result.fileSize || 0,
+              chaptersCount: result.chaptersCount || 0,
+              title: metadata.title,
+            },
+          ],
+        };
+      }
+
+      logger.book(`Создание многочастного EPUB: ${metadata.title}`);
+      logger.info(`Страниц для включения: ${pages.length}`);
+      logger.info(`Количество частей: ${partCount}`);
+
+      if (pages.length === 0) {
+        throw new Error("Нет страниц для включения в EPUB");
+      }
+
+      // Преобразуем страницы в главы и сортируем по дате
+      const chapters = pages.map((page) => pageDataToChapter(page));
+      const sortedChapters = this.sortChaptersByDate(chapters);
+
+      // Разбиваем на части
+      const chapterParts = this.splitChaptersIntoParts(
+        sortedChapters,
+        partCount
+      );
+      logger.info(`Главы разбиты на ${chapterParts.length} частей`);
+
+      const parts: EpubPartResult[] = [];
+      let totalFileSize = 0;
+
+      // Генерируем каждую часть
+      for (let i = 0; i < chapterParts.length; i++) {
+        const partNumber = i + 1;
+        const partChapters = chapterParts[i];
+
+        if (partChapters.length === 0) continue;
+
+        const partMetadata: EpubMetadata = {
+          ...metadata,
+          title: `${metadata.title} - Часть ${partNumber}`,
+          description: `${metadata.description || ""} (Часть ${partNumber} из ${
+            chapterParts.length
+          })`,
+        };
+
+        // Определяем путь для части
+        const pathExtension = basePath.replace(/\.epub$/, "");
+        const partPath = `${pathExtension}-часть-${partNumber}.epub`;
+
+        logger.info(
+          `Генерация части ${partNumber}/${chapterParts.length} (${partChapters.length} глав)`
+        );
+
+        // Создаем страницы для этой части (нужно для совместимости с generateEpub)
+        const partPages = partChapters.map((chapter, index) => {
+          // Создаем PageData объект из главы для совместимости
+          return {
+            title: chapter.title,
+            content: chapter.content,
+            excerpt: "",
+            url: chapter.url || `part-${partNumber}-chapter-${index + 1}`,
+            domain: "fastfounder.ru",
+            wordCount: chapter.content.length / 5, // Приблизительная оценка
+            datePublished: chapter.date,
+            author: partMetadata.author,
+            leadImageUrl: null,
+          } as PageData;
+        });
+
+        const partResult = await this.generateEpub(
+          partPages,
+          partMetadata,
+          partPath
+        );
+
+        if (!partResult.success) {
+          logger.error(
+            `Ошибка создания части ${partNumber}: ${partResult.error}`
+          );
+          return {
+            success: false,
+            error: `Ошибка создания части ${partNumber}: ${partResult.error}`,
+            totalParts: 0,
+            totalChapters: 0,
+            totalFileSize: 0,
+            parts: [],
+          };
+        }
+
+        const partInfo: EpubPartResult = {
+          partNumber,
+          outputPath: partResult.outputPath!,
+          fileSize: partResult.fileSize || 0,
+          chaptersCount: partResult.chaptersCount || 0,
+          title: partMetadata.title,
+        };
+
+        parts.push(partInfo);
+        totalFileSize += partResult.fileSize || 0;
+
+        logger.success(`Часть ${partNumber} создана: ${partInfo.outputPath}`);
+      }
+
+      logger.success(`Все ${parts.length} частей созданы успешно!`);
+      logger.info(`Общий размер: ${formatBytes(totalFileSize)}`);
+      logger.info(`Всего глав: ${sortedChapters.length}`);
+
+      return {
+        success: true,
+        totalParts: parts.length,
+        totalChapters: sortedChapters.length,
+        totalFileSize,
+        parts,
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      logger.error(`Ошибка создания многочастного EPUB: ${errorMessage}`);
+
+      return {
+        success: false,
+        error: errorMessage,
+        totalParts: 0,
+        totalChapters: 0,
+        totalFileSize: 0,
+        parts: [],
+      };
+    }
   }
 
   async generateEpub(
