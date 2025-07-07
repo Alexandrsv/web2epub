@@ -1,24 +1,38 @@
 {
-  "name": "fastfounder",
+  "name": "fastfounder-parser",
   "version": "1.0.0",
-  "main": "index.js",
+  "description": "Parser for fastfounder.ru with EPUB generation",
+  "type": "module",
+  "main": "src/app.ts",
   "scripts": {
-    "dev": "tsx watch src/app.ts",
     "start": "tsx src/app.ts",
+    "dev": "tsx src/app.ts --dev",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
     "ts:check": "tsc --noEmit",
-    "lint": "eslint .",
-    "format": "prettier --write .",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "lint": "eslint src/**/*.ts"
   },
-  "keywords": [],
+  "keywords": [
+    "parser",
+    "epub",
+    "fastfounder"
+  ],
   "author": "",
   "license": "ISC",
-  "description": "",
-  "devDependencies": {
-    "prettier": "^3.6.2"
-  },
   "dependencies": {
     "@postlight/parser": "^2.2.3",
-    "tsx": "^4.20.3"
+    "html-entities": "^2.4.0",
+    "tsx": "^4.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.17",
+    "@typescript-eslint/eslint-plugin": "^8.35.1",
+    "@typescript-eslint/parser": "^8.35.1",
+    "@vitest/ui": "^1.6.1",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.2"
   }
 }
