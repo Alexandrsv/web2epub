@@ -18,7 +18,7 @@ export interface AppConfig {
 }
 
 export const CONFIG: AppConfig = {
-  DEV_PAGES_LIMIT: parseInt(process.env.PAGES_LIMIT || "3"),
+  DEV_PAGES_LIMIT: parseInt(process.env.PAGES_LIMIT || "30"),
   COOKIES_FILE: "./fastfounder.ru_cookies.txt",
   CSV_FILE: "./1.csv",
   OUTPUT_DIR: "./output",
@@ -40,7 +40,7 @@ export const CONFIG: AppConfig = {
   },
 
   delays: {
-    betweenRequests: parseInt(process.env.REQUEST_DELAY || "1000"),
+    betweenRequests: parseInt(process.env.REQUEST_DELAY || "300"),
   },
 
   retry: {

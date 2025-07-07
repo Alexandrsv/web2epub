@@ -95,6 +95,21 @@ export class EpubGenerator {
     });
   }
 
+  private processImagesInContent(content: string): string {
+    // Заменяем img теги на текстовые ссылки для избежания ошибок с загрузкой изображений
+    return content
+      .replace(
+        /<img[^>]*src="([^"]*)"[^>]*alt="([^"]*)"[^>]*\/?>/gi,
+        (match, src, alt) => {
+          const imageText = alt || "изображение";
+          return `<p><em>🖼️ ${imageText}</em> <br/><small>(<a href="${src}">ссылка на изображение</a>)</small></p>`;
+        }
+      )
+      .replace(/<img[^>]*src="([^"]*)"[^>]*\/?>/gi, (match, src) => {
+        return `<p><em>🖼️ Изображение</em> <br/><small>(<a href="${src}">ссылка на изображение</a>)</small></p>`;
+      });
+  }
+
   private formatChapterContent(chapter: EpubChapter): string {
     const metaInfo = [];
 
@@ -117,7 +132,10 @@ export class EpubGenerator {
         ? `<div class="chapter-meta">${metaInfo.join(" • ")}</div>`
         : "";
 
-    return `${metaSection}${chapter.content}`;
+    // Обрабатываем изображения для избежания ошибок
+    const processedContent = this.processImagesInContent(chapter.content);
+
+    return `${metaSection}${processedContent}`;
   }
 
   async generateEpub(

@@ -6,8 +6,16 @@ import { PageParser } from "./parsers/page-parser.js";
 import { EpubGenerator } from "./epub/generator.js";
 import { defaultEpubMetadata } from "./types/index.js";
 import { formatDuration } from "./utils/helpers.js";
+import { PageCache } from "./utils/cache.js";
 
 class FastFounderParser {
+  async clearCache(): Promise<void> {
+    logger.info("🗑️  Очистка кеша страниц...");
+    const cache = new PageCache();
+    await cache.clearCache();
+    logger.success("✅ Кеш очищен");
+  }
+
   async run(): Promise<void> {
     const startTime = Date.now();
 
@@ -33,9 +41,9 @@ class FastFounderParser {
       // Этап 3: Парсинг страниц
       logger.info("Начинаем парсинг страниц...");
       const parser = new PageParser(cookies);
-      
+
       // Извлекаем URL из ParsedCSVRow
-      const urls = pages.map(page => page.url);
+      const urls = pages.map((page) => page.url);
       const parsedPages = await parser.parsePages(urls);
 
       if (parsedPages.length === 0) {
@@ -88,8 +96,17 @@ const isMainModule = import.meta.url === `file://${process.argv[1]}`;
 
 if (isMainModule) {
   const app = new FastFounderParser();
-  app.run().catch((error) => {
-    logger.boom("Необработанная ошибка:", error);
-    process.exit(1);
-  });
+
+  // Проверяем аргументы командной строки
+  if (process.argv.includes("--clear-cache")) {
+    app.clearCache().catch((error) => {
+      logger.boom("Ошибка очистки кеша:", error);
+      process.exit(1);
+    });
+  } else {
+    app.run().catch((error) => {
+      logger.boom("Необработанная ошибка:", error);
+      process.exit(1);
+    });
+  }
 }
