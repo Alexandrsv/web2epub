@@ -21,32 +21,50 @@ describe("PageParser", () => {
   });
 
   describe("cleanHtmlContent (private method)", () => {
-    it("должен очищать HTML теги", () => {
-      const parserAny = parser as any;
+    it("должен сохранять HTML структуру", () => {
+      const parserAny = parser as unknown as Record<string, unknown>;
       const testHtml = "<p>Test <strong>bold</strong> &amp; content</p>";
-      const cleaned = parserAny.cleanHtmlContent(testHtml);
-      
-      expect(cleaned).toBe("Test bold &amp; content");
-      expect(cleaned).not.toContain("<");
-      expect(cleaned).not.toContain(">");
+      const cleaned = (parserAny.cleanHtmlContent as (html: string) => string)(
+        testHtml
+      );
+
+      expect(cleaned).toBe("<p>Test <strong>bold</strong> &amp; content</p>");
+      expect(cleaned).toContain("<p>");
+      expect(cleaned).toContain("<strong>");
+    });
+
+    it("должен удалять скрипты и стили", () => {
+      const parserAny = parser as unknown as Record<string, unknown>;
+      const testHtml = "<div>Content <script>alert('test')</script> <style>body{color:red}</style> more</div>";
+      const cleaned = (parserAny.cleanHtmlContent as (html: string) => string)(
+        testHtml
+      );
+
+      expect(cleaned).toBe("<div>Content more</div>");
+      expect(cleaned).not.toContain("script");
+      expect(cleaned).not.toContain("style");
     });
 
     it("должен удалять избыточные пробелы", () => {
-      const parserAny = parser as any;
+      const parserAny = parser as unknown as Record<string, unknown>;
       const testHtml = "<div>  Multiple    spaces   here  </div>";
-      const cleaned = parserAny.cleanHtmlContent(testHtml);
-      
-      expect(cleaned).toBe("Multiple spaces here");
+      const cleaned = (parserAny.cleanHtmlContent as (html: string) => string)(
+        testHtml
+      );
+
+      expect(cleaned).toBe("<div> Multiple spaces here </div>");
     });
   });
 
   describe("initializeParser (private method)", () => {
     it("должен инициализировать @postlight/parser", async () => {
-      const parserAny = parser as any;
-      await parserAny.initializeParser();
-      
+      const parserAny = parser as unknown as Record<string, unknown>;
+      await(parserAny.initializeParser as () => Promise<void>)();
+
       expect(parserAny.parser).toBeDefined();
-      expect(typeof parserAny.parser.parse).toBe("function");
+      expect(typeof (parserAny.parser as Record<string, unknown>).parse).toBe(
+        "function"
+      );
     });
   });
 

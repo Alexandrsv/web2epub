@@ -36,10 +36,13 @@ export class PageParser {
   }
 
   private cleanHtmlContent(content: string): string {
-    // Удаляем HTML теги
+    // НЕ удаляем HTML теги - сохраняем структуру для EPUB
+    // Только очищаем нежелательные теги и скрипты
     return content
-      .replace(/<[^>]*>/g, "")
-      .replace(/\s+/g, " ")
+      .replace(/<script[^>]*>.*?<\/script>/gis, "") // Удаляем скрипты
+      .replace(/<style[^>]*>.*?<\/style>/gis, "") // Удаляем стили
+      .replace(/<!--.*?-->/gs, "") // Удаляем комментарии
+      .replace(/\s+/g, " ") // Нормализуем пробелы
       .trim();
   }
 
@@ -57,16 +60,16 @@ export class PageParser {
           },
         });
 
-        // Декодируем HTML entities и очищаем содержимое
+        // Сначала декодируем HTML entities в сыром контенте, потом очищаем
+        const rawDecodedContent = decode(result.content || "");
+        const cleanedContent = this.cleanHtmlContent(rawDecodedContent);
+
         const decodedTitle = decode(result.title || "");
-        const decodedContent = this.cleanHtmlContent(
-          decode(result.content || "")
-        );
         const decodedExcerpt = result.excerpt ? decode(result.excerpt) : "";
 
         const pageData: PageData = {
           title: decodedTitle,
-          content: decodedContent,
+          content: cleanedContent,
           excerpt: decodedExcerpt,
           url: result.url || url,
           domain: result.domain || "fastfounder.ru",

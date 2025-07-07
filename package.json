@@ -23,10 +23,12 @@
   "license": "ISC",
   "dependencies": {
     "@postlight/parser": "^2.2.3",
+    "epub-gen": "^0.1.0",
     "html-entities": "^2.4.0",
     "tsx": "^4.7.0"
   },
   "devDependencies": {
+    "@types/epub-gen": "^0.1.2",
     "@types/node": "^20.11.17",
     "@typescript-eslint/eslint-plugin": "^8.35.1",
     "@typescript-eslint/parser": "^8.35.1",
