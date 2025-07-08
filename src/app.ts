@@ -40,7 +40,7 @@ class FastFounderParser {
 
       // Этап 3: Парсинг страниц
       logger.info("Начинаем парсинг страниц...");
-      const parser = new PageParser(cookies);
+      const parser = new PageParser(cookies, CONFIG.contentFilter.enabled);
 
       // Извлекаем URL из ParsedCSVRow
       const urls = pages.map((page) => page.url);

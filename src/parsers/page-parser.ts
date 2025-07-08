@@ -4,6 +4,10 @@ import { logger } from "../utils/logger.js";
 import { sleep, retry } from "../utils/helpers.js";
 import { decode } from "html-entities";
 import { PageCache } from "../utils/cache.js";
+import {
+  ContentFilter,
+  createFastFounderFilter,
+} from "../utils/content-filter.js";
 
 interface PostlightParserResult {
   title?: string;
@@ -28,10 +32,22 @@ export class PageParser {
   private readonly cookies: string;
   private parser: PostlightParser | null = null;
   private cache: PageCache;
+  private contentFilter: ContentFilter;
 
-  constructor(cookies: string) {
+  constructor(cookies: string, useContentFilter = true) {
     this.cookies = cookies;
     this.cache = new PageCache();
+
+    // Создаем фильтр контента если включен
+    this.contentFilter = useContentFilter
+      ? createFastFounderFilter()
+      : new ContentFilter();
+
+    if (useContentFilter) {
+      logger.info(
+        `🧹 Фильтр контента активен: ${this.contentFilter.getRulesCount()} правил`
+      );
+    }
   }
 
   private async initializeParser(): Promise<void> {
@@ -42,14 +58,19 @@ export class PageParser {
   }
 
   private cleanHtmlContent(content: string): string {
-    // НЕ удаляем HTML теги - сохраняем структуру для EPUB
+    // Сначала применяем фильтрацию контента
+    let cleanedContent = this.contentFilter.filterContent(content);
+
+    // Затем НЕ удаляем HTML теги - сохраняем структуру для EPUB
     // Только очищаем нежелательные теги и скрипты
-    return content
+    cleanedContent = cleanedContent
       .replace(/<script[^>]*>.*?<\/script>/gis, "") // Удаляем скрипты
       .replace(/<style[^>]*>.*?<\/style>/gis, "") // Удаляем стили
       .replace(/<!--.*?-->/gs, "") // Удаляем комментарии
       .replace(/\s+/g, " ") // Нормализуем пробелы
       .trim();
+
+    return cleanedContent;
   }
 
   async parsePage(url: string): Promise<PageData> {
@@ -139,7 +160,9 @@ export class PageParser {
         results.push(pageData);
         parsedCount++;
 
-        logger.info(`✅ ${parsedCount}/${uncachedUrls.length}: ${pageData.title}`);
+        logger.info(
+          `✅ ${parsedCount}/${uncachedUrls.length}: ${pageData.title}`
+        );
 
         // Сохраняем кеш каждые 5 страниц для безопасности
         if (parsedCount % 5 === 0) {
