@@ -29,7 +29,7 @@ export const CONFIG: AppConfig = {
     process.env.NODE_ENV === "development" || process.argv.includes("--dev"),
 
   epub: {
-    parts: parseInt(process.env.EPUB_PARTS || "17"),
+    parts: parseInt(process.env.EPUB_PARTS || "50"),
   },
 
   http: {

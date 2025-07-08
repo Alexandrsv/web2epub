@@ -121,18 +121,11 @@ export class EpubGenerator {
   }
 
   private processImagesInContent(content: string): string {
-    // Заменяем img теги на текстовые ссылки для избежания ошибок с загрузкой изображений
+    // Удаляем img теги без замены на текст про изображения
     return content
-      .replace(
-        /<img[^>]*src="([^"]*)"[^>]*alt="([^"]*)"[^>]*\/?>/gi,
-        (match, src, alt) => {
-          const imageText = alt || "изображение";
-          return `<p><em>🖼️ ${imageText}</em> <br/><small>(<a href="${src}">ссылка на изображение</a>)</small></p>`;
-        }
-      )
-      .replace(/<img[^>]*src="([^"]*)"[^>]*\/?>/gi, (match, src) => {
-        return `<p><em>🖼️ Изображение</em> <br/><small>(<a href="${src}">ссылка на изображение</a>)</small></p>`;
-      });
+      .replace(/<img[^>]*\/?>/gi, "")
+      .replace(/\s{2,}/g, " ") // Убираем лишние пробелы
+      .trim();
   }
 
   private formatChapterContent(chapter: EpubChapter): string {

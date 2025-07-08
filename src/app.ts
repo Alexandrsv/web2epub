@@ -55,7 +55,9 @@ class FastFounderParser {
       // Этап 4: Создание EPUB
       logger.info("Создаем EPUB документ...");
       const epubGenerator = new EpubGenerator();
-      const basePath = `./fastfounder-${CONFIG.isDev ? "dev" : "full"}.epub`;
+      const basePath = `./results/fastfounder-${
+        CONFIG.isDev ? "dev" : "full"
+      }.epub`;
 
       const epubResult = await epubGenerator.generateMultiPartEpub(
         parsedPages,
